@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="SQAM: efficient off-policy fine-tuning of flow policies with scalar adjoint matching.">
+  <title>SQAM — Q-Learning with Scalar Adjoint Matching</title>
+  <link rel="stylesheet" href="assets/katex/katex.min.css">
+  <script defer src="assets/katex/katex.min.js"></script>
+  <script defer src="assets/katex/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters:[{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
+  <style>
+    @font-face { font-family:"Google Sans"; src:url("assets/fonts/GoogleSans-Regular.ttf") format("truetype"); font-style:normal; font-weight:400; font-display:swap; }
+    @font-face { font-family:"Google Sans"; src:url("assets/fonts/GoogleSans-Medium.ttf") format("truetype"); font-style:normal; font-weight:500; font-display:swap; }
+    @font-face { font-family:"Google Sans"; src:url("assets/fonts/GoogleSans-Bold.ttf") format("truetype"); font-style:normal; font-weight:700; font-display:swap; }
+    @font-face { font-family:"Google Sans"; src:url("assets/fonts/GoogleSans-Italic.ttf") format("truetype"); font-style:italic; font-weight:400; font-display:swap; }
+    :root { --ink:#172235; --muted:#465366; --line:#e3e7ed; --blue:rgb(83,131,236); --light:#f7f9fc; --baseline:#b9c2cf; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:#fff; color:var(--ink); font-family:"Google Sans",Arial,sans-serif; font-size:20px; line-height:1.62; }
+    a { color:var(--blue); }
+    img,video { display:block; max-width:100%; }
+    .container { width:min(1040px,calc(100% - 42px)); margin-inline:auto; }
+    .hero { max-width:940px; padding:85px 0 30px; text-align:left; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { margin-bottom:19px; font-size:clamp(34px,3.8vw,48px); letter-spacing:-.045em; line-height:1.12; text-align:center; white-space:nowrap; }
+    .hero p { max-width:900px; margin:0 auto 19px; color:var(--muted); font-size:20px; text-align:justify; text-justify:inter-word; }
+    .hero .tldr { margin-bottom:0; color:var(--ink); font-size:22px; font-weight:700; }
+    .review-meta { margin:16px auto 38px; font-size:20px; line-height:1.55; text-align:center; }
+    .review-meta strong { display:block; font-weight:700; }
+    .review-meta span { display:block; color:var(--muted); }
+    .lead-figure { margin:33px auto 0; }
+    figure { margin:0; }
+    .figure { padding:16px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+    .figure img { width:100%; }
+    figcaption { margin:13px 2px 0; color:var(--muted); font-size:19px; line-height:1.55; text-align:justify; }
+    .content-section { margin-top:86px; padding-top:76px; border-top:1px solid var(--line); scroll-margin-top:30px; }
+    main > .content-section:first-child { margin-top:0; padding-top:56px; }
+    .section-title { max-width:920px; margin:0 auto 6px; color:var(--blue); font-size:clamp(31px,3.1vw,40px); line-height:1.12; letter-spacing:-.05em; }
+    .section-headline { max-width:920px; margin:0 auto 24px; font-size:clamp(25px,2.5vw,31px); line-height:1.27; letter-spacing:-.035em; }
+    h3 { margin-bottom:8px; font-size:25px; letter-spacing:-.025em; }
+    .copy { max-width:920px; margin-inline:auto; color:var(--muted); font-size:20px; text-align:justify; text-justify:inter-word; }
+    .copy p { margin-bottom:15px; }
+    .copy strong { color:var(--ink); }
+    .question { max-width:920px; margin:25px auto 0; color:var(--ink); font-size:23px; font-weight:700; }
+    .visual-grid { display:grid; grid-template-columns:1fr; gap:28px; margin-top:27px; }
+    .visual-grid .figure { min-width:0; }
+    .equation { max-width:920px; margin:22px auto; overflow-x:auto; overflow-y:hidden; color:#111; font-size:22px; line-height:1.4; text-align:center; }
+    .equation .katex-display { margin:0; }
+    .equation .katex { font-size:1em; }
+    .copy .katex { font-size:1.05em; }
+    .side-note { max-width:920px; margin-inline:auto; color:var(--muted); font-size:19px; text-align:justify; }
+    .small-figure { margin-top:28px; }
+    .small-figure img { max-height:475px; object-fit:contain; }
+    .adjoint-figure { margin:28px auto; }
+    .stat-line { display:flex; justify-content:center; gap:clamp(28px,5vw,70px); align-items:center; flex-wrap:wrap; margin:26px 0 29px; padding:21px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .stat-item { display:flex; align-items:center; gap:14px; max-width:100%; }
+    .stat-item > strong { color:var(--blue); font-size:43px; letter-spacing:-.05em; line-height:1; }
+    .stat-item > strong.baseline { color:var(--muted); font-size:36px; }
+    .stat-item span { color:var(--muted); font-size:19px; }
+    .stat-item span strong { font-weight:700; }
+    .stat-item span strong.sqam-label { color:var(--blue); }
+    .bar-chart { padding:24px 26px 17px; border:1px solid var(--line); border-radius:10px; }
+    .chart-head { display:flex; justify-content:space-between; gap:15px; align-items:baseline; margin-bottom:17px; }
+    .chart-head h3 { margin:0; }
+    .legend { display:flex; gap:15px; color:var(--muted); font-size:19px; white-space:nowrap; }
+    .legend span { display:inline-flex; align-items:center; gap:6px; }
+    .swatch { display:inline-block; width:9px; height:9px; background:var(--baseline); }
+    .swatch.sqam { background:var(--blue); }
+    .domain { margin:18px 0 24px; }
+    .domain-label { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:9px; font-size:19px; font-weight:700; }
+    .domain-label span:last-child { color:var(--blue); }
+    .track { height:16px; margin:7px 0; border-radius:20px; background:#f0f2f5; overflow:hidden; }
+    .fill { height:100%; border-radius:20px; background:var(--baseline); }
+    .fill.sqam { background:var(--blue); }
+    .fineprint { color:var(--muted); font-size:19px; text-align:justify; }
+    details { margin-top:22px; border:1px solid var(--line); border-radius:9px; }
+    summary { padding:16px 20px; color:var(--blue); font-size:19px; font-weight:700; cursor:pointer; }
+    .table-scroll { width:100%; overflow-x:auto; padding:0 17px 17px; }
+    table { width:100%; border-collapse:collapse; white-space:nowrap; font-size:19px; }
+    th,td { padding:11px 13px; border-bottom:1px solid var(--line); text-align:right; }
+    th:first-child,td:first-child { text-align:left; }
+    thead th { color:var(--muted); font-weight:700; }
+    tbody tr:last-child { background:#f3f7ff; color:var(--blue); }
+    tbody tr:last-child td:first-child, tbody td strong { font-weight:800; }
+    .cost { margin-top:24px; }
+    .cost img { width:100%; }
+    .robot-task { margin:35px 0 40px; }
+    .robot-task-header { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:16px; }
+    .robot-task-header h3 { margin:0; font-size:25px; line-height:1.3; }
+    .play-pair { flex:none; padding:11px 17px; border:1px solid var(--blue); border-radius:7px; background:var(--blue); color:#fff; font:700 18px "Google Sans",Arial,sans-serif; cursor:pointer; }
+    .play-pair:hover,.play-pair:focus-visible { background:#3e6fd8; }
+    .comparison-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:17px; }
+    .comparison-panel { min-width:0; padding:14px; border:1px solid var(--line); border-radius:9px; }
+    .comparison-panel.sqam { border:2px solid var(--blue); background:#fbfcff; }
+    .comparison-label { margin-bottom:11px; font-size:21px; font-weight:700; line-height:1.3; }
+    .comparison-panel.sqam .comparison-label { color:var(--blue); }
+    .comparison-panel video { width:100%; aspect-ratio:16/9; object-fit:contain; border-radius:5px; background:#0b1423; }
+    .results-table { margin-top:27px; }
+    .results-table table { white-space:normal; font-size:19px; }
+    .results-table th,.results-table td { padding:11px 13px; }
+    .results-table .sqam-offline { background:#f3f7ff; color:var(--blue); font-weight:400; }
+    .results-table tbody tr:last-child { color:var(--blue); font-weight:700; }
+    .takeaway { margin-bottom:95px; }
+    .takeaway-list { max-width:920px; margin:24px auto; padding-left:31px; }
+    .takeaway-list li { margin-bottom:22px; padding-left:6px; }
+    .takeaway-list li::marker { color:var(--blue); font-size:1.2em; }
+    .takeaway-list strong { display:block; margin-bottom:4px; }
+    .takeaway-list p { margin:0; color:var(--muted); font-size:20px; text-align:justify; text-justify:inter-word; }
+    @media(max-width:760px) {
+      .hero { padding-top:65px; }
+      .hero .subtitle { margin-left:0; }
+      .content-section { margin-top:67px; padding-top:57px; }
+      .visual-grid,.comparison-grid { grid-template-columns:1fr; }
+      .robot-task-header { align-items:flex-start; flex-direction:column; }
+      .stat-line { gap:13px; }
+      .chart-head { display:block; }
+      .legend { margin-top:10px; }
+      .bar-chart { padding:17px; }
+      .domain-label { display:block; }
+      .domain-label span { display:block; }
+      .domain-label span:last-child { margin-top:3px; }
+    }
+    @media(max-width:700px) { h1 { white-space:normal; font-size:clamp(26px,5.5vw,34px); } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+  </style>
+</head>
+<body>
+  <header class="container hero" id="top">
+    <h1>Q-Learning with Scalar Adjoint Matching</h1>
+    <div class="review-meta"><strong>Anonymous authors</strong><span>Paper under double-blind review</span></div>
+    <p class="tldr">TL;DR — SQAM replaces per-step policy vector–Jacobian products in adjoint matching with a closed-form scalar adjoint, and pairs it with a value penalty at policy-generated actions.</p>
+  </header>
+
+  <main class="container">
+    <section class="content-section" id="method">
+      <h2 class="section-title">Motivation</h2><h3 class="section-headline">How can we fine-tune a multi-step flow policy with a learned value function?</h3>
+      <div class="copy">
+        <p><strong>A flow policy generates its action over many flow steps, while the critic only tells us how good the final action is. To improve the flow, each intermediate step also needs to know which direction to push its state so that the final action gets a higher value.</strong></p>
+        <p><strong>Adjoint matching provides a theoretically grounded way to directly update the flow model with this value information.</strong> Starting from the critic’s gradient at the final action, it passes that gradient backward through the sampling chain by integrating the lean adjoint ODE. The resulting adjoint at each flow step then provides a target for updating the fine-tuned velocity field.</p>
+        <p><strong>The challenge is computational cost.</strong> This backward propagation requires a vector–Jacobian product through the policy at every flow step, so the cost grows with both the number of flow steps and the policy size.</p>
+      </div>
+      <p class="question">Can we preserve this propagation without a policy vector–Jacobian product at every flow step?</p>
+    </section>
+
+    <figure class="figure lead-figure"><a href="assets/sqam-main-figure.pdf" aria-label="Open the main figure as a vector PDF"><img src="assets/sqam-main-figure.svg" alt="QAM and TRQAM propagate the final-action Q-gradient through a full Jacobian; SQAM uses a scalar adjoint without policy vector–Jacobian products"></a><figcaption>QAM and TRQAM propagate the final-action Q-gradient backward using a policy vector–Jacobian product at every flow step. SQAM instead scales that gradient by flow time, with no policy vector–Jacobian product at any flow step.</figcaption></figure>
+
+    <section class="content-section" id="jacobian">
+      <h2 class="section-title">Observation</h2><h3 class="section-headline">The batch-averaged velocity Jacobian is nearly diagonal.</h3>
+      <div class="copy"><p>The batch-averaged velocity Jacobian of a pretrained flow policy is strongly dominated by its diagonal.</p></div>
+      <div class="visual-grid">
+        <figure class="figure"><a href="assets/sqam-jacobian.pdf" aria-label="Open the Jacobian figure as a PDF"><img src="assets/sqam-jacobian.svg?v=0d73e24" alt="Velocity Jacobian heatmaps with dominant diagonal entries" loading="lazy"></a><figcaption>Batch-averaged velocity Jacobians across four domains and two flow times.</figcaption></figure>
+        <div><p class="copy">Motivated by this structure, we approximate the Jacobian by a scalar multiple of the identity:</p><div class="equation">\[J_\tau \approx c_\tau I\]</div><p class="copy">Under this approximation, the adjoint ODE admits a closed-form solution whose direction is the critic gradient at the final action. To avoid estimating the remaining Jacobian-dependent scalar factor, SQAM drops this rescaling and uses:</p><div class="equation">\[\hat a_\tau = -\tau\nabla_{X_1}Q^\pi(s,X_1), \qquad \forall\,\tau\in[0,1]\]</div><p class="side-note">One critic gradient at the sampled action; no policy vector–Jacobian product at any flow step.</p></div>
+      </div>
+    </section>
+
+    <section class="content-section" id="adjoint-comparison">
+      <h2 class="section-title">What does the scalar adjoint preserve?</h2><h3 class="section-headline">Similar contraction, positively aligned direction.</h3>
+      <div class="copy"><p>Although the scalar adjoint approximates exact gradient propagation, the two adjoints contract similarly in magnitude and remain positively aligned across flow time.</p></div>
+      <figure class="figure adjoint-figure"><a href="assets/figure-4-adjoints.pdf" aria-label="Open Figure 4 as a vector PDF"><img src="assets/figure-4-adjoints.svg" alt="Figure 4 compares the normalized norms and angles of the exact and scalar adjoints across four domains over flow time" loading="lazy"></a><figcaption>Exact and scalar adjoints computed on the same rollout states.</figcaption></figure>
+      <div class="copy"><p>The discrepancy is larger on the manipulation domains, which are also the domains where the scalar adjoint alone underperforms.</p></div>
+    </section>
+
+    <section class="content-section" id="critic">
+      <h2 class="section-title">Critic learning</h2><h3 class="section-headline">The critic matters where the policy uses it.</h3>
+      <div class="copy"><p>The scalar adjoint uses the critic gradient <strong>directly at the policy-generated action \(a_\pi\)</strong>, making its update especially sensitive to critic errors at that action.</p><p>SQAM therefore penalizes the critic’s value at \(a_\pi\) relative to the dataset action \(a_{\mathrm{data}}\):</p></div>
+      <div class="equation">\[\mathcal{L}_{\mathrm{critic}}\mathrel{+}=c\cdot\left(Q^\pi(s,\operatorname{sg}(a_\pi))-Q^\pi(s,a_{\mathrm{data}})\right)\]</div>
+      <div class="copy"><p>The penalty acts at the action whose critic gradient drives the scalar adjoint update. The value penalty lifts both cube manipulation domains where the unregularized scalar adjoint struggles, while ReBRAC and the in-sample critic stay near the unregularized baseline.</p></div>
+      <figure class="figure small-figure"><a href="assets/figure-5-conservatism.pdf" aria-label="Open Figure 5 as a vector PDF"><img src="assets/figure-5-conservatism.svg" alt="Figure 5 comparing critic regularization schemes on cube-triple and cube-quadruple" loading="lazy"></a><figcaption>The value penalty substantially improves both cube domains. ReBRAC and the in-sample critic stay near the unregularized baseline, while the gradient-norm penalty also helps, especially on cube-quadruple.</figcaption></figure>
+    </section>
+
+    <section class="content-section" id="results">
+      <h2 class="section-title">OGBench results</h2><h3 class="section-headline">SQAM improves most where the benchmark is hardest.</h3>
+      <div class="copy"><p>We evaluate on <strong>50 tasks across 10 domains</strong> in offline and offline-to-online reinforcement learning. The largest offline gains appear on four hard domains.</p></div>
+      <div class="stat-line"><div class="stat-item"><strong class="baseline">68%</strong><span><strong>TRQAM</strong>, strongest overall baseline</span></div><div class="stat-item"><strong>75%</strong><span><strong class="sqam-label">SQAM</strong> average success across 50 tasks</span></div></div>
+      <div class="bar-chart" role="img" aria-label="Offline success rates by domain: antmaze-giant 41 baseline and 62 SQAM; humanoidmaze-large 36 and 54; cube-triple 50 and 72; cube-quadruple 19 and 54">
+        <div class="chart-head"><h3>Four hardest domains</h3><div class="legend"><span><i class="swatch"></i>TRQAM</span><span><i class="swatch sqam"></i>SQAM</span></div></div>
+        <div class="domain"><div class="domain-label"><span>AntMaze-Giant</span><span>41% → 62% &nbsp; +21 pts</span></div><div class="track"><div class="fill" style="width:41%"></div></div><div class="track"><div class="fill sqam" style="width:62%"></div></div></div>
+        <div class="domain"><div class="domain-label"><span>HumanoidMaze-Large</span><span>36% → 54% &nbsp; +18 pts</span></div><div class="track"><div class="fill" style="width:36%"></div></div><div class="track"><div class="fill sqam" style="width:54%"></div></div></div>
+        <div class="domain"><div class="domain-label"><span>Cube-Triple</span><span>50% → 72% &nbsp; +22 pts</span></div><div class="track"><div class="fill" style="width:50%"></div></div><div class="track"><div class="fill sqam" style="width:72%"></div></div></div>
+        <div class="domain"><div class="domain-label"><span>Cube-Quadruple</span><span>19% → 54% &nbsp; +35 pts</span></div><div class="track"><div class="fill" style="width:19%"></div></div><div class="track"><div class="fill sqam" style="width:54%"></div></div></div>
+        <p class="fineprint">Offline mean success after 1M fine-tuning steps, eight seeds. TRQAM is the strongest baseline on each of these four domains.</p>
+      </div>
+      <details><summary>View all 10 domain averages and methods</summary><div class="table-scroll"><table>
+        <thead><tr><th>Method</th><th>AL</th><th>AG</th><th>HM</th><th>HL</th><th>Scene</th><th>P33</th><th>P44</th><th>C2</th><th>C3</th><th>C4</th><th>All 50</th></tr></thead>
+        <tbody>
+          <tr><td>FQL</td><td>38</td><td>2</td><td>74</td><td>2</td><td>70</td><td>25</td><td>9</td><td>44</td><td>7</td><td>9</td><td>28</td></tr>
+          <tr><td>CGQL-L</td><td>48</td><td>7</td><td>57</td><td>6</td><td>58</td><td>0</td><td>0</td><td>55</td><td>0</td><td>1</td><td>23</td></tr>
+          <tr><td>DSRL</td><td>53</td><td>1</td><td>53</td><td>1</td><td><strong>80</strong></td><td><strong>100</strong></td><td>61</td><td>72</td><td>34</td><td>9</td><td>46</td></tr>
+          <tr><td>IFQL</td><td>29</td><td>12</td><td>93</td><td>30</td><td>36</td><td>64</td><td>42</td><td>9</td><td>24</td><td>6</td><td>35</td></tr>
+          <tr><td>QAM</td><td>62</td><td>29</td><td>64</td><td>4</td><td>64</td><td>15</td><td>1</td><td>71</td><td>19</td><td>18</td><td>35</td></tr>
+          <tr><td>QAM-E</td><td>86</td><td>6</td><td>60</td><td>4</td><td>63</td><td>89</td><td>54</td><td>71</td><td>11</td><td>9</td><td>45</td></tr>
+          <tr><td>TRQAM</td><td>89</td><td>41</td><td>84</td><td>36</td><td>79</td><td><strong>100</strong></td><td><strong>99</strong></td><td><strong>81</strong></td><td>50</td><td>19</td><td>68</td></tr>
+          <tr><td>SQAM</td><td><strong>91</strong></td><td><strong>62</strong></td><td><strong>94</strong></td><td><strong>54</strong></td><td>79</td><td><strong>100</strong></td><td>85</td><td>58</td><td><strong>72</strong></td><td><strong>54</strong></td><td><strong>75</strong></td></tr>
+        </tbody>
+      </table><p class="fineprint">Mean success rate (%); each domain contains five tasks. Abbreviations follow the manuscript's Table 1. Standard deviations are reported in the paper.</p></div></details>
+    </section>
+
+    <section class="content-section" id="compute">
+      <h2 class="section-title">Compute</h2><h3 class="section-headline">Removing policy VJPs from adjoint propagation.</h3>
+      <div class="copy"><p>Each SQAM update removes the \(F\) policy vector–Jacobian products required by an exact \(F\)-step adjoint chain. The saving grows with the number of flow steps and remains substantial as the actor becomes larger.</p></div>
+      <figure class="figure cost"><a href="assets/cost_scaling.pdf" aria-label="Open the compute figure as a vector PDF"><img src="assets/cost_scaling.svg" alt="Per-update cost across actor sizes and numbers of flow steps" loading="lazy"></a><figcaption>Per-update timing from the manuscript, varying actor width and flow-step count.</figcaption></figure>
+    </section>
+
+    <section class="content-section" id="robot">
+      <h2 class="section-title">Real robot</h2><h3 class="section-headline">Scaling to a pretrained vision-language-action policy.</h3>
+      <div class="copy"><p>SQAM fine-tunes RLDX-1, a pretrained vision-language-action policy controlling two arms and two 20-DoF dexterous hands. <strong>RL fine-tuning acts on a 16-step × 54-DoF sub-chunk over the arm and hand joints.</strong> We evaluate three real-world bimanual manipulation tasks.</p></div>
+      <div class="results-table table-scroll"><table><thead><tr><th>Method</th><th>Put &amp; Close</th><th>Flip Bag</th><th>Place Straw</th></tr></thead><tbody><tr><td>SFT</td><td>4/30</td><td>15/30</td><td>7/30</td></tr><tr><td>EXPO-FT offline</td><td>5/30</td><td>8/30</td><td>0/30</td></tr><tr><td>EXPO-FT offline2online</td><td>3/30</td><td>15/30</td><td>0/30</td></tr><tr class="sqam-offline"><td>SQAM offline</td><td>8/30</td><td>20/30</td><td>13/30</td></tr><tr><td>SQAM offline2online</td><td>13/30</td><td>25/30</td><td>15/30</td></tr></tbody></table></div>
+      <p class="fineprint">Successful held-out episodes out of 30 per task. SQAM improves over supervised fine-tuning on all three tasks.</p>
+      <article class="robot-task" id="pot-comparison">
+        <div class="robot-task-header"><h3>Put fruit in the pot and close the lid</h3><button class="play-pair" type="button">Play both from start</button></div>
+        <div class="comparison-grid">
+          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-pot-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure putting fruit in the pot and closing the lid at 2x speed"><source src="assets/expo-pot-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-pot-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success putting fruit in the pot and closing the lid at 2x speed"><source src="assets/sqam-pot-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+        </div>
+      </article>
+      <article class="robot-task" id="flip-comparison">
+        <div class="robot-task-header"><h3>Flip the plastic bag</h3><button class="play-pair" type="button">Play both from start</button></div>
+        <div class="comparison-grid">
+          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-flip-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure flipping the plastic bag at 2x speed"><source src="assets/expo-flip-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-flip-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success flipping the plastic bag at 2x speed"><source src="assets/sqam-flip-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+        </div>
+      </article>
+      <article class="robot-task" id="straw-comparison">
+        <div class="robot-task-header"><h3>Place the straw in the cup</h3><button class="play-pair" type="button">Play both from start</button></div>
+        <div class="comparison-grid">
+          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-straw-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure placing a straw in a cup at 2x speed"><source src="assets/expo-straw-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-straw-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success placing a straw in a cup at 2x speed"><source src="assets/sqam-straw-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="content-section takeaway" id="takeaway">
+      <h2 class="section-title">Takeaway</h2><h3 class="section-headline">Two findings behind SQAM.</h3>
+      <ul class="takeaway-list"><li><strong>The batch-averaged velocity Jacobian is dominated by its diagonal.</strong><p>This motivates a scalar approximation under which the adjoint admits a closed-form solution.</p></li><li><strong>The critic matters where the scalar adjoint uses it.</strong><p>The scalar adjoint reads the critic gradient directly at policy-generated actions, making critic control at those actions especially important.</p></li></ul>
+      <div class="copy"><p>Together, these ingredients simplify off-policy fine-tuning, improve performance most on the hardest OGBench domains, and extend to a pretrained vision-language-action policy on a real bimanual robot.</p></div>
+    </section>
+  </main>
+  <script>
+    document.querySelectorAll('.play-pair').forEach(button => {
+      button.addEventListener('click', () => {
+        const videos = [...button.closest('.robot-task').querySelectorAll('video')];
+        document.querySelectorAll('.robot-task video').forEach(video => video.pause());
+        videos.forEach(video => { video.currentTime = 0; video.play(); });
+      });
+    });
+  </script>
+</body>
+</html>
