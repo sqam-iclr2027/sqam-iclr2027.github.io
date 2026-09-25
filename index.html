@@ -129,7 +129,7 @@
     <h1>Q-Learning with Scalar Adjoint Matching</h1>
     <div class="review-meta"><strong>Anonymous authors</strong><span>Paper under double-blind review</span></div>
     <p class="tldr"><strong>TL;DR —</strong> SQAM substantially reduces computation by replacing the costly vector–Jacobian products in adjoint matching with a closed-form scalar adjoint. Combined with a penalty on value overestimation, SQAM achieves state-of-the-art performance in OGBench offline-to-online experiments.</p>
-    <figure class="figure lead-figure"><a href="assets/sqam-main-figure.pdf" aria-label="Open the main figure as a vector PDF"><img src="assets/sqam-main-figure.svg" alt="QAM and TRQAM propagate the final-action Q-gradient through a full Jacobian; SQAM uses a scalar adjoint without policy vector–Jacobian products"></a><figcaption>QAM and TRQAM propagate the final-action Q-gradient backward using a policy vector–Jacobian product at every flow step. SQAM instead scales that gradient by flow time, with no policy vector–Jacobian product at any flow step.</figcaption></figure>
+    <figure class="figure lead-figure"><a href="assets/sqam-main-figure.pdf" aria-label="Open the main figure as a vector PDF"><img src="assets/sqam-main-figure.svg" alt="QAM and TRQAM propagate the final-action Q-gradient through a full Jacobian; SQAM uses a scalar adjoint without policy vector–Jacobian products"></a><figcaption>QAM and TRQAM propagate the critic’s gradient at the final action backward, which takes a vector–Jacobian product at every flow step. SQAM instead scales that gradient by flow time, with no vector–Jacobian product.</figcaption></figure>
   </header>
 
   <main class="container">
@@ -137,8 +137,10 @@
       <h2 class="section-title">Motivation</h2><h3 class="section-headline">A learned value function evaluates the final action. But how can this feedback effectively guide intermediate flow steps?</h3>
       <div class="copy">
         <p>A flow policy generates its action over many flow steps, while the critic only tells us how good the final action is. <strong>Using this final-action feedback is nontrivial, as naïve backpropagation through time (BPTT) can be unstable.</strong> <strong>Adjoint matching provides a theoretically grounded way</strong> to directly update the flow model with this value information.</p>
-        <p><strong>The challenge is computational cost</strong>. However, it requires a vector–Jacobian product through the policy at every step to solve the adjoint ODE, so the computational cost grows with the number of flow steps and policy size.</p>
+        <p><strong>The challenge is computational cost</strong>. However, it requires a vector–Jacobian product through the policy at every step to solve the lean adjoint ODE:</p>
       </div>
+      <div class="equation" id="eq-adjoint">\[\mathrm{d}a_\tau = -{a_\tau}^{\!\top}\nabla_{X_\tau}\Big(2v^{\mathrm{base}}(X_\tau,\tau)-\frac{1}{\tau}X_\tau\Big)\,\mathrm{d}\tau, \qquad a_1=-\nabla_{X_1}Q^\pi(s,X_1)\]</div>
+      <p class="copy">These per-step vector–Jacobian products make adjoint matching increasingly costly as policy size and the number of flow steps grow.</p>
     </section>
 
     <section class="content-section" id="jacobian">
@@ -151,12 +153,12 @@
 
     <section class="content-section" id="scalar-adjoint">
       <h2 class="section-title">Scalar adjoint</h2>
-      <div><p class="copy">Motivated by this structure, we approximate the Jacobian by a scalar multiple of the identity:</p><div class="equation">\[J_\tau \approx c_\tau I\]</div><p class="copy">Under this approximation, <strong>the adjoint ODE admits a closed-form solution</strong>. SQAM drops the Jacobian-dependent scalar factor and uses <strong style="color:var(--blue)">the scalar adjoint</strong>:</p><div class="equation">\[\hat a_\tau = -\tau\nabla_{X_1}Q^\pi(s,X_1), \qquad \forall\,\tau\in[0,1]\]</div><p class="side-note">One critic gradient at the sampled action; no policy vector–Jacobian product at any flow step.</p></div>
+      <div><p class="copy">Motivated by this structure, we approximate the Jacobian by a scalar multiple of the identity:</p><div class="equation">\[J_\tau \approx c_\tau I\]</div><p class="copy">Under this approximation, <strong>the lean adjoint ODE admits a closed-form solution</strong>. SQAM drops the Jacobian-dependent scalar factor and uses <strong style="color:var(--blue)">the scalar adjoint</strong>:</p><div class="equation">\[\hat a_\tau = -\tau\nabla_{X_1}Q^\pi(s,X_1), \qquad \forall\,\tau\in[0,1]\]</div><p class="side-note">One critic gradient at the sampled action; no policy vector–Jacobian product at any flow step.</p></div>
     </section>
 
     <section class="content-section" id="critic">
-      <h2 class="section-title">Critic learning</h2><h3 class="section-headline">Value penalty regularization stabilizes the scalar adjoint.</h3>
-      <div class="copy"><p>The scalar adjoint uses the critic gradient <strong>directly at the policy-generated action \(a_\pi\)</strong>, making its update especially sensitive to critic errors at that action.</p><p>SQAM therefore penalizes the critic’s value at \(a_\pi\) relative to the dataset action \(a_{\mathrm{data}}\):</p></div>
+      <h2 class="section-title">Value learning</h2><h3 class="section-headline">Value penalty regularization stabilizes the scalar adjoint.</h3>
+      <div class="copy"><p>The scalar adjoint update depends directly on the critic’s gradient at the policy-generated action \(a_\pi\). This makes the choice of value learning scheme important.</p><p>SQAM therefore <strong>penalizes the critic’s value at the policy-generated action \(\boldsymbol{a_\pi}\)</strong> relative to the dataset action \(a_{\mathrm{data}}\):</p></div>
       <div class="equation">\[\mathcal{L}_{\mathrm{critic}}\mathrel{+}=c\cdot\left(Q^\pi(s,\operatorname{sg}(a_\pi))-Q^\pi(s,a_{\mathrm{data}})\right)\]</div>
       <div class="copy"><p>The penalty acts at the action whose critic gradient drives the scalar adjoint update. The value penalty lifts both cube manipulation domains where the unregularized scalar adjoint struggles, while ReBRAC and the in-sample critic stay near the unregularized baseline.</p></div>
       <figure class="figure small-figure"><a href="assets/figure-5-conservatism.pdf" aria-label="Open Figure 5 as a vector PDF"><img src="assets/figure-5-conservatism.svg" alt="Figure 5 comparing critic regularization schemes on cube-triple and cube-quadruple" loading="lazy"></a><figcaption>The value penalty substantially improves both cube domains. ReBRAC and the in-sample critic stay near the unregularized baseline, while the gradient-norm penalty also helps, especially on cube-quadruple.</figcaption></figure>
@@ -183,15 +185,15 @@
           <tr><td>IFQL</td><td>29</td><td>12</td><td>93</td><td>30</td><td>36</td><td>64</td><td>42</td><td>9</td><td>24</td><td>6</td><td>35</td></tr>
           <tr><td>QAM</td><td>62</td><td>29</td><td>64</td><td>4</td><td>64</td><td>15</td><td>1</td><td>71</td><td>19</td><td>18</td><td>35</td></tr>
           <tr><td>QAM-E</td><td>86</td><td>6</td><td>60</td><td>4</td><td>63</td><td>89</td><td>54</td><td>71</td><td>11</td><td>9</td><td>45</td></tr>
-          <tr><td>TRQAM</td><td>89</td><td>41</td><td>84</td><td>36</td><td>79</td><td><strong>100</strong></td><td><strong>99</strong></td><td><strong>81</strong></td><td>50</td><td>19</td><td>68</td></tr>
-          <tr><td>SQAM</td><td><strong>91</strong></td><td><strong>62</strong></td><td><strong>94</strong></td><td><strong>54</strong></td><td>79</td><td><strong>100</strong></td><td>85</td><td>58</td><td><strong>72</strong></td><td><strong>54</strong></td><td><strong>75</strong></td></tr>
+          <tr><td>TRQAM</td><td>89</td><td>41</td><td>84</td><td>36</td><td><strong>79</strong></td><td><strong>100</strong></td><td><strong>99</strong></td><td><strong>81</strong></td><td>50</td><td>19</td><td>68</td></tr>
+          <tr><td>SQAM</td><td><strong>91</strong></td><td><strong>62</strong></td><td><strong>94</strong></td><td><strong>54</strong></td><td><strong>79</strong></td><td><strong>100</strong></td><td>85</td><td>58</td><td><strong>72</strong></td><td><strong>54</strong></td><td><strong>75</strong></td></tr>
         </tbody>
       </table><p class="fineprint">Mean success rate (%); each domain contains five tasks. Abbreviations follow the manuscript's Table 1. Standard deviations are reported in the paper.</p></div></details>
     </section>
 
     <section class="content-section" id="compute">
       <h2 class="section-title">Compute</h2><h3 class="section-headline">SQAM’s computational advantage grows with policy size and flow steps.</h3>
-      <div class="copy"><p>Each SQAM update removes the \(F\) policy vector–Jacobian products required by an exact \(F\)-step adjoint chain. The saving grows with the number of flow steps and remains substantial as the actor becomes larger.</p></div>
+      <div class="copy"><p>Each SQAM update removes the policy vector–Jacobian products required at every flow step for exact adjoint propagation. The saving grows with the number of flow steps and remains substantial as the actor becomes larger.</p></div>
       <figure class="figure cost"><a href="assets/cost_scaling.pdf" aria-label="Open the compute figure as a vector PDF"><img src="assets/cost_scaling.svg" alt="Per-update cost across actor sizes and numbers of flow steps" loading="lazy"></a><figcaption>Per-update timing from the manuscript, varying actor width and flow-step count.</figcaption></figure>
     </section>
 
@@ -225,7 +227,7 @@
 
     <section class="content-section takeaway" id="takeaway">
       <h2 class="section-title">Takeaway</h2><h3 class="section-headline">Two findings behind SQAM.</h3>
-      <ul class="takeaway-list"><li><strong>The batch-averaged velocity Jacobian is dominated by its diagonal.</strong><p>This motivates a scalar approximation under which the adjoint admits a closed-form solution.</p></li><li><strong>Value penalty regularization stabilizes the scalar adjoint.</strong><p>The scalar adjoint reads the critic gradient directly at policy-generated actions, making critic control at those actions especially important.</p></li></ul>
+      <ul class="takeaway-list"><li><strong>The batch-averaged velocity Jacobian is dominated by its diagonal.</strong><p>This motivates a scalar approximation under which the adjoint admits a closed-form solution.</p></li><li><strong>Value penalty regularization stabilizes the scalar adjoint.</strong><p>Since the scalar adjoint directly uses the critic’s gradient at policy-generated actions, the choice of value learning scheme matters.</p></li></ul>
       <div class="copy"><p>Together, these ingredients simplify off-policy fine-tuning, improve performance most on the hardest OGBench domains, and extend to a pretrained vision-language-action policy on a real bimanual robot.</p></div>
     </section>
   </main>
