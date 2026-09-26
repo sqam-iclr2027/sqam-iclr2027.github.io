@@ -135,7 +135,7 @@
   <main class="container">
     <section class="content-section" id="robot">
       <h2 class="section-title">Real robot</h2><h3 class="section-headline">Scaling to a pretrained vision-language-action policy.</h3>
-      <div class="copy"><p>SQAM fine-tunes RLDX-1, a pretrained vision-language-action policy controlling two arms and two 20-DoF dexterous hands. <strong>RL fine-tuning acts on a 16-step × 54-DoF sub-chunk over the arm and hand joints.</strong> We evaluate three real-world bimanual manipulation tasks.</p></div>
+      <div class="copy"><p>SQAM fine-tunes RLDX-1, a pretrained vision-language-action policy controlling two arms and two 20-DoF dexterous hands. <strong>RL fine-tuning updates the action head of the pretrained policy on the 16 executed steps of each action chunk, covering both arms and both hands.</strong> We evaluate three real-world bimanual manipulation tasks.</p></div>
       <div class="results-table table-scroll"><table><thead><tr><th>Method</th><th>Put &amp; Close</th><th>Flip Bag</th><th>Place Straw</th></tr></thead><tbody><tr><td>SFT</td><td>4/30</td><td>15/30</td><td>7/30</td></tr><tr><td>EXPO-FT offline</td><td>5/30</td><td>8/30</td><td>0/30</td></tr><tr><td>EXPO-FT offline2online</td><td>3/30</td><td>15/30</td><td>0/30</td></tr><tr class="sqam-offline"><td>SQAM offline</td><td>8/30</td><td>20/30</td><td>13/30</td></tr><tr><td>SQAM offline2online</td><td>13/30</td><td>25/30</td><td>15/30</td></tr></tbody></table></div>
       <p class="fineprint">Successful held-out episodes out of 30 per task. SQAM improves over supervised fine-tuning on all three tasks.</p>
       <article class="robot-task" id="pot-comparison">
