@@ -128,7 +128,7 @@
   <header class="container hero" id="top">
     <h1>Q-Learning with Scalar Adjoint Matching</h1>
     <div class="review-meta"><strong>Anonymous authors</strong><span>Paper under double-blind review</span></div>
-    <p class="tldr"><strong>TL;DR —</strong> SQAM fine-tunes flow policies with a closed-form scalar adjoint that avoids the vector–Jacobian products of adjoint matching, improving on the hardest OGBench tasks and a real bimanual robot.</p>
+    <p class="tldr"><strong>TL;DR —</strong> SQAM fine-tunes flow policies with a closed-form scalar adjoint that eliminates the costly vector–Jacobian products of adjoint matching, with large gains on the hardest OGBench tasks and on a real robot with two 20-DoF dexterous hands.</p>
     <figure class="figure lead-figure"><a href="assets/sqam-main-figure.pdf" aria-label="Open the main figure as a vector PDF"><img src="assets/sqam-main-figure.svg" alt="QAM and TRQAM propagate the final-action Q-gradient through a full Jacobian; SQAM uses a scalar adjoint without policy vector–Jacobian products"></a><figcaption>QAM and TRQAM propagate the critic’s gradient at the final action backward, which takes a vector–Jacobian product at every flow step. SQAM instead scales that gradient by flow time, with no vector–Jacobian product.</figcaption></figure>
   </header>
 
