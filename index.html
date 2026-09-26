@@ -128,11 +128,39 @@
   <header class="container hero" id="top">
     <h1>Q-Learning with Scalar Adjoint Matching</h1>
     <div class="review-meta"><strong>Anonymous authors</strong><span>Paper under double-blind review</span></div>
-    <p class="tldr"><strong>TL;DR —</strong> SQAM substantially reduces computation by replacing the costly vector–Jacobian products in adjoint matching with a closed-form scalar adjoint. Combined with a penalty on value overestimation, SQAM achieves state-of-the-art performance in OGBench offline-to-online experiments.</p>
+    <p class="tldr"><strong>TL;DR —</strong> SQAM fine-tunes flow policies with a closed-form scalar adjoint that avoids the vector–Jacobian products of adjoint matching, improving on the hardest OGBench tasks and a real bimanual robot.</p>
     <figure class="figure lead-figure"><a href="assets/sqam-main-figure.pdf" aria-label="Open the main figure as a vector PDF"><img src="assets/sqam-main-figure.svg" alt="QAM and TRQAM propagate the final-action Q-gradient through a full Jacobian; SQAM uses a scalar adjoint without policy vector–Jacobian products"></a><figcaption>QAM and TRQAM propagate the critic’s gradient at the final action backward, which takes a vector–Jacobian product at every flow step. SQAM instead scales that gradient by flow time, with no vector–Jacobian product.</figcaption></figure>
   </header>
 
   <main class="container">
+    <section class="content-section" id="robot">
+      <h2 class="section-title">Real robot</h2><h3 class="section-headline">Scaling to a pretrained vision-language-action policy.</h3>
+      <div class="copy"><p>SQAM fine-tunes RLDX-1, a pretrained vision-language-action policy controlling two arms and two 20-DoF dexterous hands. <strong>RL fine-tuning acts on a 16-step × 54-DoF sub-chunk over the arm and hand joints.</strong> We evaluate three real-world bimanual manipulation tasks.</p></div>
+      <div class="results-table table-scroll"><table><thead><tr><th>Method</th><th>Put &amp; Close</th><th>Flip Bag</th><th>Place Straw</th></tr></thead><tbody><tr><td>SFT</td><td>4/30</td><td>15/30</td><td>7/30</td></tr><tr><td>EXPO-FT offline</td><td>5/30</td><td>8/30</td><td>0/30</td></tr><tr><td>EXPO-FT offline2online</td><td>3/30</td><td>15/30</td><td>0/30</td></tr><tr class="sqam-offline"><td>SQAM offline</td><td>8/30</td><td>20/30</td><td>13/30</td></tr><tr><td>SQAM offline2online</td><td>13/30</td><td>25/30</td><td>15/30</td></tr></tbody></table></div>
+      <p class="fineprint">Successful held-out episodes out of 30 per task. SQAM improves over supervised fine-tuning on all three tasks.</p>
+      <article class="robot-task" id="pot-comparison">
+        <div class="robot-task-header"><h3>Put fruit in the pot and close the lid</h3><button class="play-pair" type="button">Play both from start</button></div>
+        <div class="comparison-grid">
+          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-pot-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure putting fruit in the pot and closing the lid at 2x speed"><source src="assets/expo-pot-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-pot-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success putting fruit in the pot and closing the lid at 2x speed"><source src="assets/sqam-pot-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+        </div>
+      </article>
+      <article class="robot-task" id="flip-comparison">
+        <div class="robot-task-header"><h3>Flip the plastic bag</h3><button class="play-pair" type="button">Play both from start</button></div>
+        <div class="comparison-grid">
+          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-flip-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure flipping the plastic bag at 2x speed"><source src="assets/expo-flip-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-flip-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success flipping the plastic bag at 2x speed"><source src="assets/sqam-flip-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+        </div>
+      </article>
+      <article class="robot-task" id="straw-comparison">
+        <div class="robot-task-header"><h3>Place the straw in the cup</h3><button class="play-pair" type="button">Play both from start</button></div>
+        <div class="comparison-grid">
+          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-straw-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure placing a straw in a cup at 2x speed"><source src="assets/expo-straw-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-straw-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success placing a straw in a cup at 2x speed"><source src="assets/sqam-straw-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
+        </div>
+      </article>
+    </section>
+
     <section class="content-section" id="method">
       <h2 class="section-title">Motivation</h2><h3 class="section-headline">A learned value function evaluates the final action. But how can this feedback effectively guide intermediate flow steps?</h3>
       <div class="copy">
@@ -167,7 +195,6 @@
     <section class="content-section" id="results">
       <h2 class="section-title">OGBench results</h2>
       <div class="copy"><p>We evaluate on 50 tasks across 10 domains in OGBench offline and offline-to-online reinforcement learning. The largest offline gains appear on four hard domains.</p></div>
-      <div class="stat-line"><div class="stat-item"><strong class="baseline">68%</strong><span><strong>TRQAM</strong>, strongest overall baseline</span></div><div class="stat-item"><strong>75%</strong><span><strong class="sqam-label">SQAM</strong> average success across 50 tasks</span></div></div>
       <div class="bar-chart" role="img" aria-label="Offline success rates by domain: antmaze-giant 41 baseline and 62 SQAM; humanoidmaze-large 36 and 54; cube-triple 50 and 72; cube-quadruple 19 and 54">
         <div class="chart-head"><h3>Four hardest domains</h3><div class="legend"><span><i class="swatch"></i>TRQAM</span><span><i class="swatch sqam"></i>SQAM</span></div></div>
         <div class="domain"><div class="domain-label"><span>AntMaze-Giant</span><span>41% → 62% &nbsp; +21 pts</span></div><div class="track"><div class="fill" style="width:41%"></div></div><div class="track"><div class="fill sqam" style="width:62%"></div></div></div>
@@ -195,34 +222,6 @@
       <h2 class="section-title">Compute</h2><h3 class="section-headline">SQAM’s computational advantage grows with policy size and flow steps.</h3>
       <div class="copy"><p>Each SQAM update removes the policy vector–Jacobian products required at every flow step for exact adjoint propagation. The saving grows with the number of flow steps and remains substantial as the actor becomes larger.</p></div>
       <figure class="figure cost"><a href="assets/cost_scaling.pdf" aria-label="Open the compute figure as a vector PDF"><img src="assets/cost_scaling.svg" alt="Per-update cost across actor sizes and numbers of flow steps" loading="lazy"></a><figcaption>Per-update timing from the manuscript, varying actor width and flow-step count.</figcaption></figure>
-    </section>
-
-    <section class="content-section" id="robot">
-      <h2 class="section-title">Real robot</h2><h3 class="section-headline">Scaling to a pretrained vision-language-action policy.</h3>
-      <div class="copy"><p>SQAM fine-tunes RLDX-1, a pretrained vision-language-action policy controlling two arms and two 20-DoF dexterous hands. <strong>RL fine-tuning acts on a 16-step × 54-DoF sub-chunk over the arm and hand joints.</strong> We evaluate three real-world bimanual manipulation tasks.</p></div>
-      <div class="results-table table-scroll"><table><thead><tr><th>Method</th><th>Put &amp; Close</th><th>Flip Bag</th><th>Place Straw</th></tr></thead><tbody><tr><td>SFT</td><td>4/30</td><td>15/30</td><td>7/30</td></tr><tr><td>EXPO-FT offline</td><td>5/30</td><td>8/30</td><td>0/30</td></tr><tr><td>EXPO-FT offline2online</td><td>3/30</td><td>15/30</td><td>0/30</td></tr><tr class="sqam-offline"><td>SQAM offline</td><td>8/30</td><td>20/30</td><td>13/30</td></tr><tr><td>SQAM offline2online</td><td>13/30</td><td>25/30</td><td>15/30</td></tr></tbody></table></div>
-      <p class="fineprint">Successful held-out episodes out of 30 per task. SQAM improves over supervised fine-tuning on all three tasks.</p>
-      <article class="robot-task" id="pot-comparison">
-        <div class="robot-task-header"><h3>Put fruit in the pot and close the lid</h3><button class="play-pair" type="button">Play both from start</button></div>
-        <div class="comparison-grid">
-          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-pot-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure putting fruit in the pot and closing the lid at 2x speed"><source src="assets/expo-pot-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
-          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-pot-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success putting fruit in the pot and closing the lid at 2x speed"><source src="assets/sqam-pot-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
-        </div>
-      </article>
-      <article class="robot-task" id="flip-comparison">
-        <div class="robot-task-header"><h3>Flip the plastic bag</h3><button class="play-pair" type="button">Play both from start</button></div>
-        <div class="comparison-grid">
-          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-flip-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure flipping the plastic bag at 2x speed"><source src="assets/expo-flip-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
-          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-flip-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success flipping the plastic bag at 2x speed"><source src="assets/sqam-flip-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
-        </div>
-      </article>
-      <article class="robot-task" id="straw-comparison">
-        <div class="robot-task-header"><h3>Place the straw in the cup</h3><button class="play-pair" type="button">Play both from start</button></div>
-        <div class="comparison-grid">
-          <div class="comparison-panel"><div class="comparison-label">EXPO-FT offline2online (Failure)</div><video controls playsinline preload="metadata" poster="assets/expo-straw-blurred-2x-large-poster.jpg" aria-label="EXPO-FT offline2online failure placing a straw in a cup at 2x speed"><source src="assets/expo-straw-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
-          <div class="comparison-panel sqam"><div class="comparison-label">SQAM offline2online (Success)</div><video controls playsinline preload="metadata" poster="assets/sqam-straw-blurred-2x-large-poster.jpg" aria-label="SQAM offline2online success placing a straw in a cup at 2x speed"><source src="assets/sqam-straw-blurred-2x-large.mp4" type="video/mp4">Your browser does not support HTML video.</video></div>
-        </div>
-      </article>
     </section>
 
     <section class="content-section takeaway" id="takeaway">
